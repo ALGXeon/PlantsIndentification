@@ -191,7 +191,7 @@ ConditionList = []
 while 1:
     try:
         inputNum = int(input("请输入: "))
-    except:
+    except ValueError:
         print("请输入正确的整数")
         continue
     if inputNum == 0:
