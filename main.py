@@ -29,22 +29,32 @@ class PlantsDict:
         self.df.loc[len(self.df.index)] = [self.sum, newPlant]
         # print(self.df)
         self.safe()
+        print("加入成功~")
 
-    def delete(self, plant):
-        if isinstance(plant, int):
-            plant = self.dictNumToPlants[plant]
-        number = self.dictPlantsToNum[plant]
+    def delete(self, Plant):
+        try:
+            itemp = int(Plant)
+            Plant = itemp
+        except ValueError:
+            pass
+        if isinstance(Plant, int):
+            if Plant > self.sum:
+                print("超出范围！")
+                return
+            Plant = self.dictNumToPlants[Plant]
+        number = self.dictPlantsToNum[Plant]
         for i in range(number, self.sum):
             self.dictNumToPlants[i] = self.dictNumToPlants[i+1]
             self.dictPlantsToNum[self.dictNumToPlants[i]] = i
             self.df.loc[i-1] = self.df.loc[i]
             self.df.loc[i-1, 'number'] = self.df.loc[i-1, 'number'] - 1
         del self.dictNumToPlants[self.sum]
-        del self.dictPlantsToNum[plant]
+        del self.dictPlantsToNum[Plant]
         self.df = self.df.drop(self.sum-1)
         self.sum -= 1
         # print(self.df)
         self.safe()
+        print("删除成功~")
 
     def show(self):
         for i in range(1, self.sum+1):
@@ -79,10 +89,21 @@ class PlantsCharacterDict:
         self.df.loc[len(self.df.index)] = [self.sum, newCharacter]
         # print(self.df)
         self.safe()
+        print("加入成功~")
 
     def delete(self, Character):
+        # 检查输入是否是数字,如果是就转换到对应的Character
+        try:
+            itemp = int(Character)
+            Character = itemp
+        except ValueError:
+            pass
         if isinstance(Character, int):
+            if Character > self.sum:
+                print("超出范围！")
+                return
             Character = self.dictNumToCharacter[Character]
+        # 开始删除
         number = self.dictCharacterToNum[Character]
         for i in range(number, self.sum):
             self.dictNumToCharacter[i] = self.dictNumToCharacter[i+1]
@@ -95,6 +116,7 @@ class PlantsCharacterDict:
         self.sum -= 1
         # print(self.df)
         self.safe()
+        print("删除成功~")
 
     def show(self):
         for i in range(1, self.sum+1):
@@ -117,9 +139,18 @@ class PlantsDictControl:
     def AddCharacter(self, newcharacter):
         self.PlantsCharacter.add(newcharacter)
 
-    def DeletePlants(self, plants):
-        self.Plants.delete(plants)
-        self.PlantsCharacter.delete(plants)
+    def DeletePlant(self, Plant):
+        try:
+            itemp = int(Plant)
+            Plant = itemp
+        except ValueError:
+            pass
+        if Plant > self.Plants.sum or Plant <= 0:
+            print("超出范围！")
+            return
+        Plant = self.Plants.dictNumToPlants[Plant]
+        self.Plants.delete(Plant)
+        self.PlantsCharacter.delete(Plant)
 
     def DeleteCharacter(self, character):
         self.PlantsCharacter.delete(character)
@@ -143,8 +174,16 @@ class PlantsRuleBase:
         self.Character = xPlantsCharacterDict
         self.sum = len(self.df.index)
 
+    def show(self):
+        print(self.df)
     def add(self, p, q):
         li = p.split(' & ')
+        for i in li:
+            try:
+                self.Character.dictCharacterToNum[i]
+            except KeyError:
+                print("条件\'{}\'不在特征列表。请先将其加到特征列表！".format(i))
+                return
         for i in range(len(li)-1):
             for j in range(i+1, len(li)):
                 if self.Character.dictCharacterToNum[li[i]] > self.Character.dictCharacterToNum[li[j]]:
@@ -157,10 +196,15 @@ class PlantsRuleBase:
         self.df.loc[len(self.df.index)] = [pp, q]
         self.safe()
         self.sum += 1
+        print("加入成功~")
 
     def delete(self, x):
+        if x > self.sum:
+            print("超出范围！")
+            return
         self.df = self.df.drop(x)
         rule.sum -= 1
+        print("删除成功~")
 
     def safe(self):
         self.df.to_csv(self.PathToRule, sep=',', index=False, header=True)
@@ -172,6 +216,13 @@ def sortByDict(li, dict):
                 t = li[i]
                 li[i] = li[j]
                 li[j] = t
+
+def Confirm():
+    s = input("请确认, y/n\n").strip()
+    if s == 'y':
+        return True
+    else:
+        return False
 
 def RemoveExrtaSpace(ins):
     s = ins.strip()
@@ -205,6 +256,7 @@ def ModeSelect():
 def Manage(plants, character, rule, control):
     while 1:
         print("选择: 0.退出  1.增加植物  2.删除植物  3.增加特性  4.删除特性  5.增加规则  6.删除规则")
+        print("进入模式后输入\'go back\'可回到该选择界面")
         ModeSelectScd = False
         iMode = 1
         while not ModeSelectScd:
@@ -221,33 +273,60 @@ def Manage(plants, character, rule, control):
             if ModeSelectScd == True:
                 break
     #TODO manage mode has not been done
-        if iMode ==0:
+        if iMode == 0:
             break
         elif iMode == 1:
             print("已有植物:")
             plants.show()
             s = input("请输入植物名称:\n").strip()
-            control.AddPlants(s)
+            if s == 'go back':
+                continue
+            if Confirm():
+                control.AddPlants(s)
         elif iMode == 2:
             print("已有植物:")
             plants.show()
             s = input("请输入要删除的植物名称:\n").strip()
-            control.DeletePlants(s)
+            if s == 'go back':
+                continue
+            if Confirm():
+                control.DeletePlant(s)
         elif iMode == 3:
             print("已有特征:")
             character.show()
             s = input("请输入要加入的特征:\n").strip()
-            control.AddCharacter(s)
+            if s == 'go back':
+                continue
+            if Confirm():
+                control.AddCharacter(s)
         elif iMode == 4:
             print("已有特征:")
             character.show()
             s = input("请输入要删除的特征:\n").strip()
-            control.DeleteCharacter(s)
+            if s == 'go back':
+                continue
+            if Confirm():
+                control.DeleteCharacter(s)
         elif iMode == 5:
-            #TODO PlantsRuleBase.show()
-            pass
+            print("已有规则:")
+            rule.show()
+            print("输入样例:A & B & C -> D")
+            s = input("请输入: ").strip()
+            if s == 'go back':
+                continue
+            if Confirm():
+                s = s.split(' -> ')
+                s[0].strip(), s[1].strip()
+                rule.add(s[0], s[1])
         elif iMode == 6:
-            pass
+            print("已有规则:")
+            rule.show()
+            s = input("请输入序号: ").strip()
+            if s == 'go back':
+                continue
+            if Confirm():
+                num = int(s)
+                rule.delete(num)
 
 def InputWithNum(OutConditionList):
     inputscd = False
@@ -334,9 +413,7 @@ character = PlantsCharacterDict()
 rule = PlantsRuleBase(character)
 control = PlantsDictControl(plants, character)
 
-
 iMode = ModeSelect()
-
 
 if iMode == 1:
     Inference(plants, character, rule, control)
