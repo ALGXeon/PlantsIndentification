@@ -137,8 +137,8 @@ class PlantsDictControl:
         print()
 
 class PlantsRuleBase:
-    def __init__(self, xPlantsCharacterDict):
-        self.PathToRule = './data/PlantsRuleBase.csv'
+    def __init__(self, xPlantsCharacterDict, xPathToRule = './data/PlantsRuleBase.csv'):
+        self.PathToRule = xPathToRule
         self.df = pd.read_csv(self.PathToRule, sep=',', header=0)
         self.Character = xPlantsCharacterDict
         self.sum = len(self.df.index)
@@ -173,6 +173,160 @@ def sortByDict(li, dict):
                 li[i] = li[j]
                 li[j] = t
 
+def RemoveExrtaSpace(ins):
+    s = ins.strip()
+    n = len(s)
+    anss = s[0]
+    for i in range(1, n):
+        if s[i-1] == ' ' and s[i] == ' ':
+            continue
+        else:
+            anss += s[i]
+    return anss
+
+def ModeSelect():
+    print("模式选择: 1.用户模式  2.管理员模式")
+    ModeSelectScd = False
+    while not ModeSelectScd:
+        ModeSelectScd = True
+        sMode = input("请输入数字: ")
+        try:
+            OutiMode = int(sMode.strip())
+            if OutiMode < 1 or OutiMode > 2:
+                ModeSelectScd = False
+                print("输入有误！")
+        except ValueError:
+            ModeSelectScd = False
+            print("输入有误！")
+        if ModeSelectScd == True:
+            break
+    return OutiMode
+
+def Manage(plants, character, rule, control):
+    while 1:
+        print("选择: 0.退出  1.增加植物  2.删除植物  3.增加特性  4.删除特性  5.增加规则  6.删除规则")
+        ModeSelectScd = False
+        iMode = 1
+        while not ModeSelectScd:
+            ModeSelectScd = True
+            sMode = input("请输入数字: ")
+            try:
+                iMode = int(sMode.strip())
+                if iMode < 0 or iMode > 6:
+                    ModeSelectScd = False
+                    print("输入有误！")
+            except ValueError:
+                ModeSelectScd = False
+                print("输入有误！")
+            if ModeSelectScd == True:
+                break
+    #TODO manage mode has not been done
+        if iMode ==0:
+            break
+        elif iMode == 1:
+            print("已有植物:")
+            plants.show()
+            s = input("请输入植物名称:\n").strip()
+            control.AddPlants(s)
+        elif iMode == 2:
+            print("已有植物:")
+            plants.show()
+            s = input("请输入要删除的植物名称:\n").strip()
+            control.DeletePlants(s)
+        elif iMode == 3:
+            print("已有特征:")
+            character.show()
+            s = input("请输入要加入的特征:\n").strip()
+            control.AddCharacter(s)
+        elif iMode == 4:
+            print("已有特征:")
+            character.show()
+            s = input("请输入要删除的特征:\n").strip()
+            control.DeleteCharacter(s)
+        elif iMode == 5:
+            #TODO PlantsRuleBase.show()
+            pass
+        elif iMode == 6:
+            pass
+
+def InputWithNum(OutConditionList):
+    inputscd = False
+    while not inputscd:
+        s = RemoveExrtaSpace(input('请输入: '))
+        inputscd = True
+        for i in s.split(' '):
+            try:
+                x = int(i)
+                if x <= 0 or x > character.sum - plants.sum:
+                    print("\'{}\'超出输入范围！".format(x))
+                    inputscd = False
+            except ValueError:
+                print("\'{}\'并不是数字，请输入正确的整数".format(i))
+                inputscd = False
+        if inputscd:
+            for i in s.split(' '):
+                if character.dictNumToCharacter[int(i)] not in OutConditionList:
+                    OutConditionList.append(character.dictNumToCharacter[int(i)])
+
+
+def Inference(plants, character, rule, control):
+    # 输入阶段
+    print(f'''输入对应条件前面的数字:
+*****************************************************************************************************''')
+    control.ShowCharacter()
+    print('''****************************************************************************************************
+***************************************请以空格隔开输入对应数字*****************************************
+    ''')
+    ConditionList = []
+    InputWithNum(ConditionList)
+
+    print('\n')
+    print("前提条件为: ")
+    for i in range(len(ConditionList)):
+        print("{}:".format(i+1), end='')
+        print(ConditionList[i], end=' ')
+    print('\n')
+
+    # 按字典排序
+    sortByDict(ConditionList, character.dictCharacterToNum)
+
+    # 推理过程
+    print("推理过程如下")
+
+    flag = False
+    # 刷sum遍
+    for o in range(rule.sum):
+        # 对照每一条规则
+        for i in range(rule.sum):
+            # 在条件队列中就不用推
+            if rule.df.loc[i]['consequent'] in ConditionList:
+                continue
+            li = rule.df.loc[i]['antecedent'].split(" & ")
+            ii = 0
+            jj = 0
+            while ii < len(ConditionList) and jj < len(li):
+                if li[jj] == ConditionList[ii]:
+                    jj += 1
+                ii += 1
+            if jj == len(li):
+                ConditionList.append(rule.df.loc[i]['consequent'])
+                print(rule.df.loc[i]['antecedent'], '->', rule.df.loc[i]['consequent'])
+                if rule.df.loc[i]['consequent'] in plants.dictPlantsToNum:
+                    # 结束推理！
+                    print("所识别的植物为{}".format(rule.df.loc[i]['consequent']))
+                    flag = True
+                    break
+                for tt in range(len(ConditionList)-1, 0, -1):
+                    if character.dictCharacterToNum[ConditionList[tt]] < character.dictCharacterToNum[ConditionList[tt-1]]:
+                        t = ConditionList[tt]
+                        ConditionList[tt] = ConditionList[tt-1]
+                        ConditionList[tt-1] = t
+        if flag:
+            break
+    if not flag:
+        print("抱歉，并没能推理出对应的生物")
+
+
 
 system('chcp 65001')
 plants = PlantsDict()
@@ -180,70 +334,13 @@ character = PlantsCharacterDict()
 rule = PlantsRuleBase(character)
 control = PlantsDictControl(plants, character)
 
-# 输入阶段
-print(f'''输入对应条件前面的数字:
-*****************************************************************************************************''')
-control.ShowCharacter()
-print('''****************************************************************************************************
-***************************************当输入数字0时!程序结束*****************************************
-''')
-ConditionList = []
-while 1:
-    try:
-        inputNum = int(input("请输入: "))
-    except ValueError:
-        print("请输入正确的整数")
-        continue
-    if inputNum == 0:
-        break
-    if inputNum <= 0 or inputNum > character.sum - plants.sum:
-        print("输入超出范围！")
-        continue
-    ConditionList.append(character.dictNumToCharacter[inputNum])
+
+iMode = ModeSelect()
 
 
-print('\n')
-print("前提条件为: ")
-for i in range(len(ConditionList)):
-    print("{}:".format(i+1), end='')
-    print(ConditionList[i], end=' ')
-print('\n')
+if iMode == 1:
+    Inference(plants, character, rule, control)
+elif iMode == 2:
+    Manage(plants, character, rule, control)
 
-# 按字典排序
-sortByDict(ConditionList, character.dictCharacterToNum)
 
-# 推理过程
-print("推理过程如下")
-
-flag = False
-# 刷sum遍
-for o in range(rule.sum):
-    # 对照每一条规则
-    for i in range(rule.sum):
-        # 在条件队列中就不用推
-        if rule.df.loc[i]['consequent'] in ConditionList:
-            continue
-        li = rule.df.loc[i]['antecedent'].split(" & ")
-        ii = 0
-        jj = 0
-        while ii < len(ConditionList) and jj < len(li):
-            if li[jj] == ConditionList[ii]:
-                jj += 1
-            ii += 1
-        if jj == len(li):
-            ConditionList.append(rule.df.loc[i]['consequent'])
-            print(rule.df.loc[i]['antecedent'], ' -> ', rule.df.loc[i]['consequent'])
-            if rule.df.loc[i]['consequent'] in plants.dictPlantsToNum:
-                # 结束推理！
-                print("所识别的植物为{}".format(rule.df.loc[i]['consequent']))
-                flag = True
-                break
-            for tt in range(len(ConditionList)-1, 0, -1):
-                if character.dictCharacterToNum[ConditionList[tt]] < character.dictCharacterToNum[ConditionList[tt-1]]:
-                    t = ConditionList[tt]
-                    ConditionList[tt] = ConditionList[tt-1]
-                    ConditionList[tt-1] = t
-    if flag:
-        break
-if not flag:
-    print("抱歉，并没能推理出对应的生物")
