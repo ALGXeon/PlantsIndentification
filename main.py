@@ -143,12 +143,12 @@ class PlantsDictControl:
         try:
             itemp = int(Plant)
             Plant = itemp
+            if Plant > self.Plants.sum or Plant <= 0:
+                print("超出范围！")
+                return
+            Plant = self.Plants.dictNumToPlants[Plant]
         except ValueError:
             pass
-        if Plant > self.Plants.sum or Plant <= 0:
-            print("超出范围！")
-            return
-        Plant = self.Plants.dictNumToPlants[Plant]
         self.Plants.delete(Plant)
         self.PlantsCharacter.delete(Plant)
 
@@ -286,7 +286,7 @@ def Manage(plants, character, rule, control):
         elif iMode == 2:
             print("已有植物:")
             plants.show()
-            s = input("请输入要删除的植物名称:\n").strip()
+            s = input("请输入要删除的植物名称/编号:\n").strip()
             if s == 'go back':
                 continue
             if Confirm():
@@ -302,7 +302,7 @@ def Manage(plants, character, rule, control):
         elif iMode == 4:
             print("已有特征:")
             character.show()
-            s = input("请输入要删除的特征:\n").strip()
+            s = input("请输入要删除的特征/编号:\n").strip()
             if s == 'go back':
                 continue
             if Confirm():
